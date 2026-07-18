@@ -1,0 +1,20 @@
+description: Ultralytics best model trained on /home/madda/computer-vision-research/cctv-surveillance-system/data/data.yaml
+author: Ultralytics
+date: '2026-07-14T12:30:45.041183'
+version: 8.4.92
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+head: Detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: CCTV persons - v1 2024-09-16 8-18pm
+args:
+  batch: 1
+  quantize: null
+channels: 3
+end2end: false
