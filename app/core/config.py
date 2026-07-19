@@ -4,6 +4,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "FastAPI Backend"
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = True
+    DATABASE_URL: str = "sqlite:///./data/cctv.db"
 
     model_config = SettingsConfigDict(
         env_file=".env",
