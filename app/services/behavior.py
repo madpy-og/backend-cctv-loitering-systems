@@ -32,7 +32,7 @@ class LoiteringState:
 class AlertEvent:
     """Event alert loitering yang baru terpicu."""
     track_id: int
-    zone_id: str
+    zone_id: int
     zone_name: str
     centroid: tuple[float, float]
     dwell_time_seconds: float
@@ -60,7 +60,7 @@ class BehaviorAnalyzer:
         self._grace_period_seconds = grace_period_seconds
 
         # State per (track_id, zone_id)
-        self._state: dict[tuple[int, str], LoiteringState] = {}
+        self._state: dict[tuple[int, int], LoiteringState] = {}
 
     @property
     def loitering_threshold_seconds(self) -> float:
@@ -109,6 +109,10 @@ class BehaviorAnalyzer:
 
             for zone in active_zones:
                 polygon = zone.to_polygon_array(frame_width, frame_height)
+                
+                if zone.id is None:
+                    continue
+
                 state_key = (track.track_id, zone.id)
 
                 if state_key not in self._state:
@@ -167,11 +171,11 @@ class BehaviorAnalyzer:
 
         return alerts
 
-    def get_track_state(self, track_id: int, zone_id: str) -> LoiteringState | None:
+    def get_track_state(self, track_id: int, zone_id: int) -> LoiteringState | None:
         """Ambil state loitering untuk track + zona tertentu."""
         return self._state.get((track_id, zone_id))
 
-    def get_all_states(self) -> dict[tuple[int, str], LoiteringState]:
+    def get_all_states(self) -> dict[tuple[int, int], LoiteringState]:
         """Ambil semua state (untuk overlay visual)."""
         return self._state.copy()
 
