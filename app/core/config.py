@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     VIDEO_SOURCE: str = "0"  # "0" untuk webcam, atau path ke file video
 
     # Model
-    MODEL_PATH: str = "models/yolov8n_ncnn_model"
+    MODEL_PATH: str = "models/best_ncnn_model"
 
     # Detection parameters
     LOITERING_THRESHOLD_SECONDS: float = 30.0
