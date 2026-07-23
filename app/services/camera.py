@@ -6,6 +6,7 @@ Refactored from: loitering_system.py → get_video_properties() dan cv2.VideoCap
 """
 
 import cv2
+import time
 import threading
 import logging
 
@@ -43,6 +44,13 @@ class CameraService:
             self._cap = cv2.VideoCapture(self._source)
             self._is_opened = self._cap.isOpened()
             if self._is_opened:
+                # Drain a few warmup frames to flush stale V4L2 buffer.
+                # Without this, if model loading takes 10+ seconds,
+                # the first real read_frame() call often returns None.
+                for i in range(5):
+                    ret, _ = self._cap.read()
+                    if not ret:
+                        time.sleep(0.1)
                 logger.info(f"Camera opened: source={self._source}, "
                             f"resolution={self.width}x{self.height}, "
                             f"fps={self.fps:.1f}")
@@ -89,10 +97,12 @@ class CameraService:
 
     @property
     def fps(self) -> float:
-        """FPS sumber video."""
+        """FPS sumber video. Returns 30.0 as fallback if V4L2 reports invalid value."""
         if self._cap:
-            return self._cap.get(cv2.CAP_PROP_FPS)
-        return 0.0
+            raw_fps = self._cap.get(cv2.CAP_PROP_FPS)
+            if raw_fps > 0:
+                return raw_fps
+        return 30.0
 
     @property
     def total_frames(self) -> int:

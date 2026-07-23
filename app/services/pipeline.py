@@ -106,13 +106,15 @@ class PipelineService:
         """Main processing loop — berjalan di thread terpisah."""
         try:
             # --- Inisialisasi ---
-            if not self._camera.open():
-                raise RuntimeError(f"Gagal membuka video source: {self._camera.source}")
-
+            # Load model & tracker FIRST (takes ~11s on Pi) so camera
+            # buffer doesn't go stale waiting during model loading.
             self._detector.load_model()
             self._tracker.initialize()
 
-            fps = self._camera.fps or 30.0  # Fallback 30 fps jika unknown (webcam)
+            if not self._camera.open():
+                raise RuntimeError(f"Gagal membuka video source: {self._camera.source}")
+
+            fps = self._camera.fps  # camera.fps now returns 30.0 fallback internally
             self._status = PipelineStatus.RUNNING
             logger.info(f"Pipeline running. Source FPS: {fps:.1f}, frame_skip: {self._frame_skip}")
 
@@ -120,13 +122,20 @@ class PipelineService:
             skip_counter = 0
             fps_timer_start = time.time()
             fps_frame_count = 0
+            null_frame_streak = 0
+            max_null_frames = 30  # Allow up to 30 consecutive None frames before giving up
 
             while not self._stop_event.is_set():
                 frame = self._camera.read_frame()
                 if frame is None:
-                    # Video habis (file) atau kamera disconnect
-                    logger.info("No more frames available. Ending pipeline loop.")
-                    break
+                    null_frame_streak += 1
+                    if null_frame_streak >= max_null_frames:
+                        logger.info("No more frames available after %d retries. Ending pipeline loop.", max_null_frames)
+                        break
+                    time.sleep(0.1)  # Brief wait before retry
+                    continue
+
+                null_frame_streak = 0  # Reset on successful read
 
                 frame_count += 1
 
