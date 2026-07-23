@@ -90,6 +90,10 @@ app.add_middleware(
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+# Ensure snapshots directory exists before mounting
+import os
+os.makedirs(settings.SNAPSHOTS_DIR, exist_ok=True)
+
 # Mount static files for snapshots
 app.mount("/static/snapshots", StaticFiles(directory=settings.SNAPSHOTS_DIR), name="snapshots")
 
