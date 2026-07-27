@@ -24,7 +24,7 @@ class Zone(SQLModel, table=True):
 
     def to_polygon_array(self, frame_width: int, frame_height: int) -> np.ndarray:
         """Konversi points ke numpy polygon array untuk cv2.pointPolygonTest."""
-        pts = [(int(p["x"]), int(p["y"])) for p in self.points]
+        pts = [(int(p["x"] * frame_width), int(p["y"] * frame_height)) for p in self.points]
         if not pts:
             return np.array([[]], np.int32)
         return np.array([pts], np.int32)

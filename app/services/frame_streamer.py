@@ -8,6 +8,7 @@ Mengelola:
 2. Buffer frame terbaru untuk dikonsumsi oleh MJPEG endpoint.
 """
 
+import time
 import threading
 import logging
 
@@ -154,13 +155,14 @@ class FrameStreamer:
             track_in_zone = False
 
             for zone in active_zones:
+                if zone.id is None:
+                    continue
                 state = states.get((track.track_id, zone.id))
                 if state and state.is_loitering:
                     is_track_loitering = True
-                if state and state.in_zone and state.start_frame != -1:
+                if state and state.in_zone and state.start_time != -1.0:
                     track_in_zone = True
-                    elapsed = current_frame - state.start_frame
-                    elapsed_sec = elapsed / fps if fps > 0 else 0
+                    elapsed_sec = time.time() - state.start_time
                     track_elapsed_sec = max(track_elapsed_sec, elapsed_sec)
 
             if is_track_loitering:

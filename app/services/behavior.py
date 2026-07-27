@@ -7,6 +7,7 @@ Refactored from: loitering_system.py lines 228-291.
 Mendukung multiple zona bahaya (original hanya 1 hardcoded polygon).
 """
 
+import time
 import logging
 from dataclasses import dataclass, field
 
@@ -21,8 +22,8 @@ logger = logging.getLogger(__name__)
 class LoiteringState:
     """State loitering per track_id per zone_id."""
     in_zone: bool = False
-    start_frame: int = -1
-    last_in_zone_frame: int = -1
+    start_time: float = -1.0
+    last_in_zone_time: float = -1.0
     alert_triggered: bool = False
     is_loitering: bool = False
     last_centroid: tuple[float, float] = (0.0, 0.0)
@@ -103,6 +104,7 @@ class BehaviorAnalyzer:
             return []
 
         alerts: list[AlertEvent] = []
+        current_time = time.time()
 
         for track in tracks:
             centroid = get_centroid(track.bbox)
@@ -123,18 +125,17 @@ class BehaviorAnalyzer:
 
                 if is_in_zone:
                     # Masuk atau masih di dalam zona
-                    if state.start_frame == -1:
-                        state.start_frame = current_frame
+                    if state.start_time == -1.0:
+                        state.start_time = current_time
                         state.alert_triggered = False
                         state.is_loitering = False
 
                     state.in_zone = True
-                    state.last_in_zone_frame = current_frame
+                    state.last_in_zone_time = current_time
                     state.last_centroid = centroid
 
                     # Hitung elapsed time
-                    elapsed_frames = current_frame - state.start_frame
-                    elapsed_time_sec = elapsed_frames / fps if fps > 0 else 0
+                    elapsed_time_sec = current_time - state.start_time
 
                     # Cek apakah sudah melewati threshold
                     if (elapsed_time_sec >= self._loitering_threshold_seconds
@@ -159,13 +160,12 @@ class BehaviorAnalyzer:
                 else:
                     # Di luar zona
                     state.in_zone = False
-                    if state.start_frame != -1:
-                        frames_since_last = current_frame - state.last_in_zone_frame
-                        grace_frames = self._grace_period_seconds * fps if fps > 0 else 0
-                        if frames_since_last > grace_frames:
+                    if state.start_time != -1.0:
+                        time_since_last = current_time - state.last_in_zone_time
+                        if time_since_last > self._grace_period_seconds:
                             # Grace period habis, reset state
-                            state.start_frame = -1
-                            state.last_in_zone_frame = -1
+                            state.start_time = -1.0
+                            state.last_in_zone_time = -1.0
                             state.is_loitering = False
                             state.alert_triggered = False
 

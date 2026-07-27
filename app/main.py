@@ -13,7 +13,8 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.api.v1.router import api_router
-from app.core.db import init_db
+from app.core.db import init_db, engine
+from sqlmodel import Session, select
 
 # Import models so SQLModel metadata can register them
 from app.models.zone import Zone
@@ -44,10 +45,20 @@ async def lifespan(app: FastAPI):
     tracker = TrackerService()
     zone_manager = ZoneManager()
     zone_manager.load()
+    # Load config from DB or use settings fallback
+    with Session(engine) as session:
+        config_db = session.exec(select(SystemConfig)).first()
+        if config_db:
+            threshold = config_db.loitering_threshold_seconds
+            grace = config_db.grace_period_seconds
+        else:
+            threshold = settings.LOITERING_THRESHOLD_SECONDS
+            grace = settings.GRACE_PERIOD_SECONDS
+
     behavior = BehaviorAnalyzer(
         zone_manager=zone_manager,
-        loitering_threshold_seconds=settings.LOITERING_THRESHOLD_SECONDS,
-        grace_period_seconds=settings.GRACE_PERIOD_SECONDS
+        loitering_threshold_seconds=threshold,
+        grace_period_seconds=grace
     )
     alert_logger = AlertLogger(snapshots_dir=settings.SNAPSHOTS_DIR)
     frame_streamer = FrameStreamer()
